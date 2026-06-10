@@ -89,7 +89,8 @@ bot-detection/
 │   └── scaler.pkl
 ├── notebooks/
 │   ├── 00_EDA_Comprehensive.ipynb
-│   └── 01_Feature_Engineering.ipynb
+│   ├── 01_Feature_Engineering.ipynb
+│   └── 02_Graph_Features.ipynb
 ├── Dockerfile
 ├── Dockerfile.app
 ├── docker-compose.yml

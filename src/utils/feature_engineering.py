@@ -1,7 +1,7 @@
 """
-Feature Engineering Module - Bot Detection Project
-Phase 1.3: Data Cleaning & Feature Creation
-Adapté aux colonnes réelles du dataset bot_detection_data.csv
+Module de Feature Engineering - Projet de Détection de Bots Twitter
+Phase 1.3 : Nettoyage des données et création de caractéristiques (features)
+Ce module prépare les données brutes issues de bot_detection_data.csv pour l'entraînement.
 """
 
 import pandas as pd
@@ -14,21 +14,21 @@ warnings.filterwarnings('ignore')
 
 class FeatureEngineer:
     """
-    Feature Engineering for Twitter Bot Detection.
+    Classe de Feature Engineering pour la détection de bots Twitter.
     
-    Dataset columns:
+    Colonnes attendues dans le dataset brut :
     - User ID, Username, Tweet, Retweet Count, Mention Count,
       Follower Count, Verified, Bot Label, Location, Created At, Hashtags
     
-    Creates 8 features:
-    1. followers_to_retweet_ratio   - Follower Count / (Retweet Count + 1)
-    2. retweet_to_mention_ratio     - Retweet Count / (Mention Count + 1)
-    3. account_age_days             - Days since account creation
-    4. is_verified                  - Boolean → int
-    5. tweet_length                 - Character count of Tweet
-    6. hashtag_count                - Number of hashtags used
-    7. mentions_per_tweet           - Mention Count (raw)
-    8. engagement_score             - (Retweet Count + Mention Count) / log(Follower Count + 1)
+    Génère 8 caractéristiques (features) explicatives :
+    1. followers_to_retweet_ratio   - Ratio abonnés/retweets pour détecter le spam ou l'incohérence d'audience
+    2. retweet_to_mention_ratio     - Ratio retweets/mentions pour analyser le type d'activité du compte
+    3. account_age_days             - Âge du compte en jours (les comptes récents sont plus suspects)
+    4. is_verified                  - Indicateur de compte vérifié (les bots sont rarement vérifiés)
+    5. tweet_length                 - Longueur des tweets en caractères
+    6. hashtag_count                - Nombre de hashtags utilisés par tweet
+    7. mentions_count               - Nombre brut de mentions
+    8. engagement_score             - Score synthétique d'engagement normalisé par la taille de l'audience
     """
 
     def __init__(self, input_path='../bot_detection_data.csv'):
@@ -38,54 +38,51 @@ class FeatureEngineer:
         self.feature_cols = []
         self.scaler = StandardScaler()
 
-    # ------------------------------------------------------------------
-    # Step 1: Load
-    # ------------------------------------------------------------------
     def load_data(self):
-        print("📥 Loading dataset...")
+        # Étape 1 : Chargement du jeu de données brut depuis le fichier CSV
+        print("📥 Chargement du dataset...")
         self.df = pd.read_csv(self.input_path)
-        print(f"✓ Dataset loaded: {self.df.shape[0]} rows × {self.df.shape[1]} cols")
+        print(f"✓ Dataset chargé : {self.df.shape[0]} lignes × {self.df.shape[1]} colonnes")
 
-        # Verify target column exists
+        # Vérification de la présence de la colonne cible (Bot Label)
         if self.target_col not in self.df.columns:
             raise KeyError(f"Target column '{self.target_col}' not found. Columns: {self.df.columns.tolist()}")
-        print(f"✓ Target column: '{self.target_col}' ({self.df[self.target_col].nunique()} classes)")
+        print(f"✓ Colonne cible validée : '{self.target_col}' ({self.df[self.target_col].nunique()} classes)")
         return self.df
 
-    # ------------------------------------------------------------------
-    # Step 2: Clean
-    # ------------------------------------------------------------------
     def clean_data(self):
-        print("\n🧹 Cleaning data...")
+        # Étape 2 : Nettoyage des données et traitement des valeurs aberrantes ou manquantes
+        print("\n🧹 Nettoyage des données...")
         initial = self.df.shape[0]
 
-        # 2.1 Drop duplicates
+        # Suppression des lignes en double
         dup = self.df.duplicated().sum()
         if dup > 0:
             self.df = self.df.drop_duplicates()
-            print(f"✓ Removed {dup} duplicate rows")
+            print(f"✓ Suppression de {dup} lignes dupliquées")
 
-        # 2.2 Drop rows with missing target
+        # Suppression des lignes n'ayant pas de valeur cible pour l'apprentissage supervisé
         null_target = self.df[self.target_col].isnull().sum()
         if null_target > 0:
             self.df = self.df.dropna(subset=[self.target_col])
-            print(f"✓ Removed {null_target} rows with missing target")
+            print(f"✓ Suppression de {null_target} lignes ayant une cible manquante")
 
-        # 2.3 Handle missing Hashtags → fill with empty string
+        # Remplacement des valeurs manquantes pour les hashtags par une chaîne vide
         if 'Hashtags' in self.df.columns:
             missing_hashtags = self.df['Hashtags'].isnull().sum()
             if missing_hashtags > 0:
                 self.df['Hashtags'] = self.df['Hashtags'].fillna('')
-                print(f"✓ Filled {missing_hashtags} missing Hashtags with empty string")
+                print(f"✓ Remplacement de {missing_hashtags} valeurs Hashtags manquantes par une chaîne vide")
 
-        # 2.4 Handle missing Location → fill with 'unknown'
+        # Remplacement de la localisation manquante par la mention 'unknown'
         if 'Location' in self.df.columns:
             missing_loc = self.df['Location'].isnull().sum()
             if missing_loc > 0:
                 self.df['Location'] = self.df['Location'].fillna('unknown')
-                print(f"✓ Filled {missing_loc} missing Location with 'unknown'")
+                print(f"✓ Remplacement de {missing_loc} valeurs de localisation manquantes par 'unknown'")
 
-        # 2.5 Outlier capping (IQR method) — only on key numeric cols, cap instead of remove
+        # Traitement des valeurs extrêmes (outliers) par la méthode de l'Écart Interquartile (IQR)
+        # On limite (clippe) les valeurs extrêmes plutôt que de supprimer les lignes, pour préserver la taille du dataset
         numeric_cols = ['Retweet Count', 'Mention Count', 'Follower Count']
         total_capped = 0
         for col in numeric_cols:
@@ -99,57 +96,62 @@ class FeatureEngineer:
                 self.df[col] = self.df[col].clip(lower=lower, upper=upper)
                 total_capped += before
         if total_capped > 0:
-            print(f"✓ Capped {total_capped} outlier values (IQR method)")
+            print(f"✓ Ajustement (capping) de {total_capped} valeurs atypiques via la méthode IQR")
 
         removed = initial - self.df.shape[0]
-        print(f"✓ Cleaning complete: {removed} rows removed ({initial} → {self.df.shape[0]})")
+        print(f"✓ Nettoyage terminé : {removed} lignes retirées ({initial} → {self.df.shape[0]})")
         return self.df
 
-    # ------------------------------------------------------------------
-    # Step 3: Feature Creation — 8 features
-    # ------------------------------------------------------------------
     def create_features(self):
-        print("\n⚙️  Creating 8 features...")
+        # Étape 3 : Calcul et ingénierie de 8 caractéristiques (features) comportementales
+        print("\n⚙️  Génération des 8 features tabulaires...")
 
-        # F1: followers_to_retweet_ratio
+        # Feature 1 : followers_to_retweet_ratio
+        # Permet de distinguer les comptes avec une forte audience organique des bots à forte activité
         self.df['followers_to_retweet_ratio'] = (
             self.df['Follower Count'] / (self.df['Retweet Count'] + 1)
         )
 
-        # F2: retweet_to_mention_ratio
+        # Feature 2 : retweet_to_mention_ratio
+        # Identifie les comptes qui partagent massivement du contenu sans interaction directe
         self.df['retweet_to_mention_ratio'] = (
             self.df['Retweet Count'] / (self.df['Mention Count'] + 1)
         )
 
-        # F3: account_age_days (from Created At)
+        # Feature 3 : account_age_days
+        # Calcule l'âge du compte par rapport à une date de référence fixe
         ref_date = pd.Timestamp('2026-01-01')
         self.df['Created At'] = pd.to_datetime(self.df['Created At'], errors='coerce')
         self.df['account_age_days'] = (ref_date - self.df['Created At']).dt.days
-        # If any parsing failed, fill with median
+        # Remplacement des valeurs de date invalides par l'âge médian du dataset
         median_age = self.df['account_age_days'].median()
         self.df['account_age_days'] = self.df['account_age_days'].fillna(median_age)
 
-        # F4: is_verified (bool → int)
+        # Feature 4 : is_verified
+        # Conversion du booléen de compte certifié en entier binaire
         self.df['is_verified'] = self.df['Verified'].astype(int)
 
-        # F5: tweet_length
+        # Feature 5 : tweet_length
+        # Calcule la longueur en caractères du tweet pour déceler les patterns automatisés de textes courts/longs
         self.df['tweet_length'] = self.df['Tweet'].fillna('').apply(len)
 
-        # F6: hashtag_count
+        # Feature 6 : hashtag_count
+        # Extrait le nombre de hashtags utilisés (le bourrage de hashtags est fréquent chez les bots de spam)
         self.df['hashtag_count'] = self.df['Hashtags'].fillna('').apply(
             lambda x: len(x.split()) if x.strip() != '' else 0
         )
 
-        # F7: mentions_count (raw)
+        # Feature 7 : mentions_count
+        # Reprend la quantité brute de mentions émises dans le tweet
         self.df['mentions_count'] = self.df['Mention Count']
 
-        # F8: engagement_score
+        # Feature 8 : engagement_score
+        # Evalue l'engagement (retweets et mentions) normalisé de manière logarithmique par le nombre d'abonnés
         self.df['engagement_score'] = (
             (self.df['Retweet Count'] + self.df['Mention Count'])
             / np.log(self.df['Follower Count'] + 2)
         )
 
-        # List of engineered feature column names
         self.feature_cols = [
             'followers_to_retweet_ratio',
             'retweet_to_mention_ratio',
@@ -161,29 +163,23 @@ class FeatureEngineer:
             'engagement_score',
         ]
 
-        print(f"✓ Created {len(self.feature_cols)} features:")
+        print(f"✓ {len(self.feature_cols)} features générées avec succès :")
         for i, f in enumerate(self.feature_cols, 1):
             print(f"   {i}. {f}")
 
         return self.df
 
-    # ------------------------------------------------------------------
-    # Step 4: Normalize
-    # ------------------------------------------------------------------
     def normalize_features(self, X):
-        print("\n📊 Normalizing features (StandardScaler)...")
+        # Étape 4 : Normalisation (StandardScaler) pour centrer et réduire les variables numériques
+        print("\n📊 Normalisation des caractéristiques (StandardScaler)...")
         X_scaled = self.scaler.fit_transform(X)
         X_scaled = pd.DataFrame(X_scaled, columns=X.columns, index=X.index)
-        print(f"✓ Normalized — mean≈{X_scaled.mean().mean():.6f}, std≈{X_scaled.std().mean():.6f}")
+        print(f"✓ Normalisation réussie — moyenne moyenne≈{X_scaled.mean().mean():.6f}, écart-type moyen≈{X_scaled.std().mean():.6f}")
         return X_scaled
 
-    # ------------------------------------------------------------------
-    # Full pipeline
-    # ------------------------------------------------------------------
     def process(self):
-        print("=" * 70)
-        print("🚀 FEATURE ENGINEERING PIPELINE — Phase 1.3")
-        print("=" * 70)
+        # Exécute l'intégralité du pipeline de préparation des données et d'ingénierie des features
+        print("🚀 DEBUT DU PIPELINE DE FEATURE ENGINEERING — Phase 1.3")
 
         self.load_data()
         self.clean_data()
@@ -194,24 +190,18 @@ class FeatureEngineer:
 
         X_norm = self.normalize_features(X)
 
-        # Combine
         df_final = X_norm.copy()
         df_final[self.target_col] = y.values
 
-        # Save
         output_path = '../data/processed_features.csv'
         df_final.to_csv(output_path, index=False)
-        print(f"\n💾 Saved to: {output_path}")
-        print(f"   Shape: {df_final.shape}")
+        print(f"\n💾 Sauvegarde du dataset traité dans : {output_path}")
+        print(f"   Dimensions finales : {df_final.shape}")
 
-        # Summary
-        print("\n" + "=" * 70)
-        print("✅ FEATURE ENGINEERING COMPLETE")
-        print("=" * 70)
-        print(f"Features: {self.feature_cols}")
-        print(f"Target:   {self.target_col}")
-        print(f"Classes:  {y.nunique()} — distribution:\n{y.value_counts().to_string()}")
-        print("=" * 70)
+        print("\n✅ FEATURE ENGINEERING TERMINE AVEC SUCCES")
+        print(f"Caractéristiques traitées : {self.feature_cols}")
+        print(f"Variable cible             : {self.target_col}")
+        print(f"Distribution des classes   :\n{y.value_counts().to_string()}")
 
         return df_final, self.scaler
 
