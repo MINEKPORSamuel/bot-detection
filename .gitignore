@@ -133,10 +133,11 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Données, modèles et documents (ne pas versionner)
-data/
-models/
-documents/
+# Données, modèles et documents (ne pas versionner les dossiers à la racine)
+/data/
+/models/
+/documents/*.pdf
+/documents/*.docx
 *.csv
 *.pkl
 *.joblib

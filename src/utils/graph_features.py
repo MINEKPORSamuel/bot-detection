@@ -32,10 +32,14 @@ class GraphFeatureExtractor:
     def __init__(self,
                  raw_path='../bot_detection_data.csv',
                  processed_path='../data/processed_features.csv',
-                 output_path='../data/graph_features.csv'):
+                 output_path='../data/graph_features.csv',
+                 max_targets_per_user=25,
+                 centrality_sample_size=30):
         self.raw_path = raw_path
         self.processed_path = processed_path
         self.output_path = output_path
+        self.max_targets_per_user = max_targets_per_user
+        self.centrality_sample_size = centrality_sample_size
         self.df_raw = None
         self.G = None
         self.df_graph = None
@@ -77,11 +81,12 @@ class GraphFeatureExtractor:
             else:
                 targets = top_201_candidates[1:201]
 
-            n_targets = min(mention_count, len(targets))
+            n_targets = min(mention_count, len(targets), self.max_targets_per_user)
             selected_targets = np.random.choice(targets, size=n_targets, replace=False)
+            edge_weight = max(1.0, mention_count / n_targets)
 
             for tgt in selected_targets:
-                self.G.add_edge(src, tgt, weight=1)
+                self.G.add_edge(src, tgt, weight=edge_weight)
                 edges_added += 1
 
         print(f"✓ Graphe construit :")
@@ -91,6 +96,7 @@ class GraphFeatureExtractor:
 
     def _estimate_closeness(self, k=100):
         import random
+        random.seed(42)
         n = self.G.number_of_nodes()
         nodes = list(self.G.nodes())
         samples = random.sample(nodes, min(k, n))
@@ -133,12 +139,17 @@ class GraphFeatureExtractor:
         out_degree_cent = nx.out_degree_centrality(self.G)
 
         # F4 : Closeness Centrality (approximate Eppstein-Wang)
-        print("   4/7 Closeness Centrality (Eppstein-Wang k=100)...")
-        closeness_cent = self._estimate_closeness(k=100)
+        print(f"   4/7 Closeness Centrality (Eppstein-Wang k={self.centrality_sample_size})...")
+        closeness_cent = self._estimate_closeness(k=self.centrality_sample_size)
 
         # F5 : Betweenness Centrality (approximate k=100)
-        print("   5/7 Betweenness Centrality (k=100)...")
-        betweenness_cent = nx.betweenness_centrality(self.G, k=100, normalized=True)
+        print(f"   5/7 Betweenness Centrality (k={self.centrality_sample_size})...")
+        betweenness_cent = nx.betweenness_centrality(
+            self.G,
+            k=self.centrality_sample_size,
+            normalized=True,
+            seed=42
+        )
 
         # F6 : PageRank (importance dans le réseau)
         print("   6/7 PageRank...")
