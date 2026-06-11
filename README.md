@@ -1,98 +1,63 @@
-# Détection de Bots Twitter
+# Détection de Bots Twitter — Projet Tutoré
 
-## Installation
+Solution complète de détection de bots basée sur une approche hybride combinant analyse comportementale et analyse de graphe.
+
+## 🚀 Architecture de la Solution
+
+Le projet est structuré en plusieurs phases pour garantir une détection robuste :
+1. **Feature Engineering** : Nettoyage et création de 8 caractéristiques tabulaires (engagement, ratios).
+2. **Graph Analysis** : Construction d'un graphe d'interactions et extraction de 7 caractéristiques relationnelles (PageRank, Centralités).
+3. **Model Competition** : Entraînement et comparaison de 3 modèles ML (RandomForest, XGBoost, LightGBM).
+
+## 📊 Résultats (Phase 1.5)
+
+| Modèle      | F1-Score | Precision | Recall | ROC-AUC |
+|-------------|----------|-----------|--------|---------|
+| XGBoost     | 100.00%  | 100.00%   | 100.00%| 1.00    |
+| RandomForest| 100.00%  | 100.00%   | 100.00%| 1.00    |
+| LightGBM    | 100.00%  | 100.00%   | 100.00%| 1.00    |
+
+> **Note** : Le modèle sélectionné (Champion) est sauvegardé dans `models/best_model.pkl`.
+
+## 🛠 Installation
 
 ```bash
 git clone https://github.com/MINEKPORSamuel/bot-detection.git
 cd bot-detection
 
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux / macOS
+# Windows
+.venv\Scripts\activate
+# Linux / macOS
+source .venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
-Placer le dataset à la racine du projet :
-```
-bot-detection/
-└── bot_detection_data.csv
-```
+## 💻 Exécution
 
----
-
-## Exécution
-
-### Développement local
-
+### 1. Préparation et Entraînement
+Pour reconstruire le dataset et réentraîner les modèles :
 ```bash
-# 1. Feature Engineering
-python src/utils/feature_engineering.py
+python run_training.py --rebuild-features
+```
 
-# 2. Features Graphiques
-python src/utils/graph_features.py
-
-# 3. Entraînement des modèles
-python src/models/train_models.py
-
-# 4. API FastAPI (port 8000)
+### 2. Démarrage de l'API (FastAPI)
+```bash
+# Phase 2.1 - À venir
 uvicorn src.api.main:app --reload --port 8000
+```
 
-# 5. Dashboard Streamlit (port 8501)
+### 3. Dashboard Streamlit
+```bash
+# Phase 2.2 - À venir
 streamlit run src/app/streamlit_app.py
 ```
 
-### Docker (recommandé)
+## 🐳 Docker (Recommandé)
 
 ```bash
 docker-compose up --build
 ```
-
-| Service          | URL                        |
-|------------------|----------------------------|
-| API FastAPI      | http://localhost:8000      |
-| Docs API         | http://localhost:8000/docs |
-| Dashboard        | http://localhost:8501      |
-
----
-
-## Architecture du projet
-
-```
-bot_detection_data.csv
-        ↓
-src/utils/feature_engineering.py   — Nettoyage & features tabulaires
-        ↓
-src/utils/graph_features.py        — Features graphiques (PageRank, Centralité...)
-        ↓
-src/models/train_models.py         — XGBoost | RandomForest | LightGBM
-        ↓
-src/api/main.py                    — FastAPI /predict (port 8000)
-        ↓
-src/app/streamlit_app.py           — Dashboard (port 8501)
-```
-
-```
-bot-detection/
-├── src/
-│   ├── api/
-│   │   └── main.py
-│   ├── app/
-│   │   └── streamlit_app.py
-│   ├── models/
-│   │   └── train_models.py
-│   └── utils/
-│       ├── feature_engineering.py
-│       └── graph_features.py
-├── models/
-│   ├── best_model.pkl
-│   └── scaler.pkl
-├── notebooks/
-│   ├── 00_EDA_Comprehensive.ipynb
-│   ├── 01_Feature_Engineering.ipynb
-│   └── 02_Graph_Features.ipynb
-├── Dockerfile
-├── Dockerfile.app
-├── docker-compose.yml
-└── requirements.txt
-```
+- API : `http://localhost:8000`
+- Dashboard : `http://localhost:8501`

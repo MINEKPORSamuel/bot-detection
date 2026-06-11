@@ -136,8 +136,7 @@ Thumbs.db
 # Données, modèles et documents (ne pas versionner les dossiers à la racine)
 /data/
 /models/
-/documents/*.pdf
-/documents/*.docx
+/documents/
 *.csv
 *.pkl
 *.joblib
