@@ -15,7 +15,7 @@ class FeatureEngineer:
         ]
 
     def process(self):
-        print("🚀 FEATURE ENGINEERING (DONNÉES BRUTES)...")
+        print("[FEATURE ENGINEERING] GENERATION DES VARIABLES...")
         df = pd.read_csv(self.input_path)
         
         # Nettoyage minimal
@@ -40,5 +40,5 @@ class FeatureEngineer:
         output_dir = ROOT / "data"
         output_dir.mkdir(exist_ok=True)
         df_final.to_csv(output_dir / "processed_features.csv", index=False)
-        print(f"✓ Sauvegardé : {output_dir / 'processed_features.csv'}")
+        print(f"[SUCCESS] Sauvegarde des variables dans : {output_dir / 'processed_features.csv'}")
         return df_final

@@ -12,7 +12,7 @@ class GraphFeatureExtractor:
         self.output_path = output_path or str(ROOT / 'data/graph_features.csv')
 
     def process(self):
-        print("🕸️ ANALYSE DE GRAPHE...")
+        print("[GRAPH FEATURES] ANALYSE DE GRAPHE...")
         df_raw = pd.read_csv(self.raw_path)
         df_tab = pd.read_csv(self.processed_path)
         
@@ -25,7 +25,7 @@ class GraphFeatureExtractor:
             if row['Mention Count'] > 0:
                 targets = np.random.choice(top_users, size=min(int(row['Mention Count']), 10), replace=False)
                 for t in targets: G.add_edge(row['User ID'], t)
-
+ 
         # Calculs
         pg = nx.pagerank(G, alpha=0.85)
         dc = nx.degree_centrality(G)
@@ -34,7 +34,7 @@ class GraphFeatureExtractor:
         cl = nx.closeness_centrality(G)
         bt = nx.betweenness_centrality(G, k=50)
         cc = nx.clustering(G.to_undirected())
-
+ 
         df_graph = pd.DataFrame({
             'User ID': list(dc.keys()),
             'degree_centrality': list(dc.values()),
@@ -45,10 +45,10 @@ class GraphFeatureExtractor:
             'pagerank': list(pg.values()),
             'clustering_coefficient': list(cc.values())
         })
-
+ 
         # Fusion
         df_tab['User ID'] = df_raw['User ID']
         df_final = df_tab.merge(df_graph, on='User ID').drop(columns=['User ID'])
         df_final.to_csv(self.output_path, index=False)
-        print(f"✓ Graphe terminé : {self.output_path}")
+        print(f"[SUCCESS] Graphe terminé : {self.output_path}")
         return df_final

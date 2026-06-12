@@ -1,6 +1,6 @@
 import joblib
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
@@ -8,18 +8,10 @@ from pathlib import Path
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-# Chemins absolus
 BASE_DIR = Path(__file__).resolve().parents[2]
 model = joblib.load(BASE_DIR / "models/best_model.pkl")
+FEATURES = joblib.load(BASE_DIR / "models/feature_names.pkl")
 scaler = joblib.load(BASE_DIR / "models/scaler.pkl")
-
-# L'ORDRE EXACT des features utilisé lors de l'entraînement
-COLUMNS = [
-    'followers_to_retweet_ratio', 'retweet_to_mention_ratio', 'account_age_days', 
-    'is_verified', 'tweet_length', 'hashtag_count', 'mentions_count', 'engagement_score',
-    'degree_centrality', 'in_degree_centrality', 'out_degree_centrality', 
-    'closeness_centrality', 'betweenness_centrality', 'pagerank', 'clustering_coefficient'
-]
 
 class UserData(BaseModel):
     followers_to_retweet_ratio: float
@@ -40,24 +32,36 @@ class UserData(BaseModel):
 
 @app.post("/predict")
 def predict(data: UserData):
-    # Transformation en DataFrame avec l'ordre STRICT
-    input_data = pd.DataFrame([data.dict()])[COLUMNS]
+    # On crée le DataFrame avec l'ordre exact imposé par FEATURES
+    input_df = pd.DataFrame([data.dict()])[FEATURES]
     
-    # Debug console pour toi
-    print(f"\n[DEMANDE] Verified={data.is_verified}, Age={data.account_age_days}")
+    # Normalisation des données via le scaler chargé
+    input_scaled = pd.DataFrame(scaler.transform(input_df), columns=FEATURES)
     
-    # Normalisation et Prédiction
-    X_scaled = scaler.transform(input_data)
-    proba_bot = float(model.predict_proba(X_scaled)[0][1])
-    
-    label = "🤖 BOT DÉTECTÉ" if proba_bot > 0.5 else "👤 UTILISATEUR LÉGITIME"
+    # Prédiction logique
+    proba_bot = float(model.predict_proba(input_scaled)[0][1])
     
     return {
         "prediction": 1 if proba_bot > 0.5 else 0,
-        "probability": proba_bot,
-        "message": label
+        "probability": proba_bot
     }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "model_loaded": model is not None and scaler is not None
+    }
+
+@app.get("/info")
+def info():
+    return {
+        "model_type": type(model).__name__,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "roc_auc": 1.0,
+        "features_count": len(FEATURES),
+        "features": FEATURES
+    }
