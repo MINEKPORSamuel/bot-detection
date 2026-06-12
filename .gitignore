@@ -134,4 +134,5 @@ dmypy.json
 Thumbs.db
 
 # Les dossiers nécessaires au build Docker sont versionnés volontairement pour un fonctionnement clé en main.
-# (data, models, documents, bot_detection_data.csv)
+# (data, models, bot_detection_data.csv)
+/documents/
