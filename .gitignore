@@ -133,11 +133,5 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Données, modèles et documents (ne pas versionner les dossiers à la racine)
-/data/
-/models/
-/documents/
-*.csv
-*.pkl
-*.joblib
-*.png
+# Les dossiers nécessaires au build Docker sont versionnés volontairement pour un fonctionnement clé en main.
+# (data, models, documents, bot_detection_data.csv)

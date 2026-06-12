@@ -1,0 +1,4 @@
+Modèle,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+RandomForest,1.0,1.0,1.0,1.0,1.0
+XGBoost,1.0,1.0,1.0,1.0,1.0
+LightGBM,1.0,1.0,1.0,1.0,1.0

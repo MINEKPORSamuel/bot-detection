@@ -1,0 +1,13 @@
+{
+    "best_model": "RandomForest",
+    "metrics": {
+        "Mod\u00e8le": "RandomForest",
+        "Accuracy": 1.0,
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F1-Score": 1.0,
+        "ROC-AUC": 1.0
+    },
+    "n_features": 15,
+    "timestamp": "2026-06-11 22:51:42"
+}
