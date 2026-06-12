@@ -1,8 +1,12 @@
 import streamlit as st
 import requests
+import os
 
 # Force le thème clair et la mise en page large
 st.set_page_config(page_title="Twitter Bot Detector", layout="wide")
+
+# URL de l'API : utilise 'api' comme nom d'hôte pour Docker, sinon 'localhost'
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.title("🛡️ Système de Détection de Bots Twitter")
 st.write("Saisissez les caractéristiques du compte dans la colonne de gauche et lancez l'analyse à droite.")
@@ -57,25 +61,33 @@ with col_right:
         
         try:
             with st.spinner("Analyse du profil en cours..."):
-                r = requests.post("http://localhost:8000/predict", json=payload)
+                r = requests.post(f"{API_URL}/predict", json=payload)
                 res = r.json()
             
             st.markdown("---")
+            
+            # Calcul de l'affichage dynamique demandé par l'utilisateur
+            prob_bot = res['probability']
             if res["prediction"] == 1:
-                st.error(f"### {res['message']}")
+                label_display = "🤖 Bot"
+                score_display = prob_bot * 100
+                st.error(f"### Utilisateur : {label_display} ({score_display:.1f}%)")
             else:
-                st.success(f"### {res['message']}")
+                label_display = "👤 Humain"
+                score_display = (1 - prob_bot) * 100
+                st.success(f"### Utilisateur : {label_display} ({score_display:.1f}%)")
             
-            # Affichage de la probabilité avec une jauge
-            st.write(f"Probabilité d'être un BOT : **{res['probability']*100:.1f}%**")
-            st.progress(res['probability'])
+            # Jauge visuelle (toujours basée sur la probabilité de bot pour la couleur)
+            st.write(f"Confiance du modèle :")
+            st.progress(prob_bot)
             
-            # Niveau de confiance (déduit de la probabilité)
-            conf = "Élevée" if abs(res['probability'] - 0.5) > 0.4 else "Moyenne"
-            st.info(f"Niveau de confiance de l'IA : **{conf}**")
+            # Niveau de confiance textuel
+            conf_level = "Élevée" if abs(prob_bot - 0.5) > 0.4 else "Moyenne"
+            st.info(f"Niveau de certitude de l'IA : **{conf_level}**")
             
-        except:
-            st.error("L'API Backend (FastAPI) ne répond pas. Vérifiez que le terminal uvicorn est lancé.")
+        except Exception as e:
+            st.error(f"Erreur : {e}")
+            st.info("Vérifiez que le serveur API est lancé.")
 
 st.markdown("---")
 st.caption("Projet Tutoré - Détection de Bots Twitter avec Analyse Hybride")
