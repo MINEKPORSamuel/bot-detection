@@ -8,11 +8,31 @@ L'objectif est de développer un système capable de distinguer les utilisateurs
 
 ## 🛠️ Architecture du Système
 
-Le projet est structuré autour de quatre piliers technologiques :
-1.  **Ingénierie des Caractéristiques (Feature Engineering)** : Transformation des données brutes en indicateurs comportementaux (ratios d'engagement, âge du compte, activité de hashtag).
-2.  **Analyse de Graphe** : Utilisation de la théorie des réseaux pour extraire des mesures de centralité (PageRank, Degree Centrality, Betweenness) afin de capter l'influence et le rôle de chaque compte dans l'écosystème Twitter.
+Le projet est structuré autour d'un pipeline hybride moderne :
+
+```mermaid
+graph TD
+    A[Données Brutes Twitter] --> B{Feature Engineering}
+    B --> C[8 Variables Comportementales]
+    B --> D[7 Variables de Graphe - Spark GraphX]
+    C --> E[Compétition de Modèles ML]
+    D --> E
+    E --> F[Modèle Champion - RandomForest]
+    F --> G[API FastAPI - Backend]
+    G --> H[Dashboard Streamlit - Frontend]
+    H --> I[Verdict : Humain ou Bot]
+```
+
+Le système repose sur quatre piliers technologiques :
+1.  **Ingénierie des Caractéristiques (Feature Engineering)** : Transformation des données brutes en indicateurs comportementaux.
+2.  **Analyse de Graphe** : Utilisation de la théorie des réseaux pour extraire des mesures de centralité afin de capter l'influence structurelle.
 3.  **Apprentissage Supervisé** : Entraînement et optimisation de modèles RandomForest, XGBoost et LightGBM.
 4.  **Interface et Service de Prédiction** : Déploiement d'une API de service (FastAPI) et d'un tableau de bord interactif (Streamlit).
+
+### 🔍 Détail des 15 Variables (Features)
+L'IA fonde ses décisions sur une analyse hybride :
+*   **8 Variables Comportementales** : `is_verified` (statut), `account_age_days` (âge), `followers_to_retweet_ratio`, `retweet_to_mention_ratio`, `tweet_length` (longueur), `hashtag_count`, `mentions_count`, `engagement_score`.
+*   **7 Variables de Graphe (Réseau)** : `degree_centrality`, `in_degree_centrality`, `out_degree_centrality`, `closeness_centrality`, `betweenness_centrality`, `pagerank`, `clustering_coefficient`.
 
 ## 📊 Résultats et Modélisation
 
@@ -57,6 +77,7 @@ Les modèles ont été évalués sur un ensemble de test stratifié (20% du data
     uvicorn src.api.main:app --reload
     ```
     *   API accessible à : http://localhost:8000
+    *   **Documentation Interactive (Swagger)** : http://localhost:8000/docs
     *   Endpoints :
         *   `GET /health` : Vérification du statut de l'API et du modèle.
         *   `GET /info` : Informations de performance et métadonnées du modèle.

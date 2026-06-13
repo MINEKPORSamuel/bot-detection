@@ -5,33 +5,37 @@ Ce guide détaille le fonctionnement de l'interface interactive **Streamlit** co
 ---
 
 ## 🎨 Vue d'ensemble de l'Interface
-L'interface est conçue pour être simple et intuitive. Elle se divise en deux colonnes principales :
-1.  **Colonne de gauche (📊 Métriques)** : Zone de saisie des données du compte à analyser.
-2.  **Colonne de droite (🔮 Verdict)** : Zone de lancement de l'analyse et affichage du verdict de l'IA.
+L'application propose trois modes d'analyse via des onglets dédiés :
+1.  **🔍 Inspecteur de profils** : Pour tester des comptes réels issus du jeu de données.
+2.  **✍️ Saisie personnalisée** : Pour simuler un compte en ajustant manuellement ses caractéristiques.
+3.  **📤 Détection en Lot** : Pour traiter des centaines de comptes simultanément via un fichier CSV.
 
 ---
 
-## 🛠️ Étape 1 : Saisie des caractéristiques
-L'utilisateur doit renseigner les informations du compte via deux onglets :
+## 🛠️ Étape 1 : Choisir un mode de diagnostic
 
-### 📝 Onglet "Comportement"
-Cet onglet regroupe les statistiques classiques de l'utilisateur :
-*   **Compte vérifié** : Indique si le compte possède le badge de certification officiel.
-*   **Âge du compte** : Nombre de jours depuis la création (un compte très jeune est souvent suspect).
-*   **Ratios (Abonnés/Retweets)** : Permet de détecter les comptes qui partagent massivement sans avoir d'audience réelle.
-*   **Activité** : Longueur des tweets, nombre moyen de hashtags et de mentions utilisés par tweet.
+### 🔍 Onglet "Inspecteur de profils"
+C'est le mode le plus simple pour découvrir le système.
+*   Sélectionnez un "Compte #XYZ" dans la liste déroulante.
+*   L'interface affiche ses métriques réelles (Ancienneté, PageRank, etc.).
+*   Cliquez sur **"LANCER L'ANALYSE"** pour obtenir le verdict.
 
-### 🕸️ Onglet "Analyse Réseau"
-Cet onglet utilise des mesures issues de la théorie des graphes (Logic Spark GraphX) :
-*   **Centralités (Degré, In/Out)** : Mesurent l'activité et l'influence brute du compte dans le réseau d'interactions.
-*   **PageRank** : Évalue l'importance "stratégique" du compte.
-*   **Clustering (Interconnexion)** : Un taux élevé indique souvent que le compte appartient à une **ferme de bots** où tous les membres interagissent entre eux.
+### ✍️ Onglet "Saisie personnalisée"
+Ce mode permet de "jouer" avec les variables pour comprendre les limites de l'IA.
+*   **Comportement** : Réglez l'âge du compte, le statut de certification et les habitudes de tweet (hashtags, mentions).
+*   **Centralités Réseau** : Via l'accordéon en bas, ajustez les scores de popularité (PageRank) et d'interconnexion (Clustering).
+
+### 📤 Onglet "Détection en Lot (CSV)"
+Pour les analyses de masse.
+*   Téléchargez le modèle CSV exemple.
+*   Importez votre fichier contenant les 15 variables.
+*   L'IA traite la liste et vous permet de télécharger un fichier de résultats avec les prédictions et probabilités.
 
 ---
 
 ## 🚀 Étape 2 : Lancement de l'Analyse
-Une fois les curseurs réglés :
-1.  Cliquez sur le bouton bleu **"LANCER L'ANALYSE MAINTENANT"**.
+Une fois les données sélectionnées ou saisies :
+1.  Cliquez sur le bouton bleu **"LANCER L'ANALYSE"**.
 2.  Une requête est envoyée en temps réel à l'**API FastAPI** qui interroge le modèle de Machine Learning.
 
 ---
@@ -39,17 +43,16 @@ Une fois les curseurs réglés :
 ## 📉 Étape 3 : Interprétation des Résultats
 
 ### 1. Le Verdict Dynamique
-*   **🟢 UTILISATEUR LÉGITIME** : Le profil correspond aux patterns humains. Le pourcentage indique le niveau de confiance de l'IA.
-*   **🔴 BOT DÉTECTÉ** : Le compte présente des caractéristiques d'automatisation.
+*   **👤 UTILISATEUR LÉGITIME** : Le profil correspond aux patterns humains.
+*   **🤖 BOT DÉTECTÉ** : Le compte présente des caractéristiques d'automatisation.
 
 ### 2. Le Rapport de Justification (Explicabilité)
-Sous le verdict, le système génère un **Rapport détaillé en 7+ points**. Ce module explique "pourquoi" l'IA a pris cette décision.
-*   *Exemple* : "🚨 Absence de badge de certification", "⏳ Compte établi", "📢 Spam de mentions détecté".
+Sous le verdict, le système génère un **Rapport détaillé en 8 points**. Ce module explique "pourquoi" l'IA a pris cette décision en analysant chaque variable (Certification, Ratios, PageRank, etc.).
 
 ---
 
 ## 🐳 Note technique (Docker)
-Pour que l'interface puisse communiquer avec l'intelligence artificielle, l'API Backend doit être active. En utilisant Docker, cela est géré automatiquement par la commande :
+L'interface (Port 8501) nécessite que le Backend API (Port 8000) soit actif. En utilisant Docker, tout est orchestré automatiquement :
 `docker-compose up`
 
 ---
